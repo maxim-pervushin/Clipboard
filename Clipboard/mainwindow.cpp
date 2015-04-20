@@ -12,10 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(clipboardDataChanged()));
-    connect(ui->storeClipboardButton, SIGNAL(clicked()), this, SLOT(storeClipboard()));
-    connect(ui->restoreClipboardButton, SIGNAL(clicked()), this, SLOT(restoreClipboard()));
-
-    qDebug() << QDir::currentPath();
+    connect(ui->saveClipboardButton, SIGNAL(clicked()), this, SLOT(saveClipboard()));
+    connect(ui->loadClipboardButton, SIGNAL(clicked()), this, SLOT(loadClipboard()));
 }
 
 MainWindow::~MainWindow()
@@ -23,31 +21,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::storeFormat(int index, QString format, QByteArray data)
-{
-    QString path = QString("%1/%2/%3").arg(QDir::currentPath(), "clpbrd", QString::number(index));
-    QDir dir;
-    if (!dir.mkpath(path))
-    {
-        qDebug() << "Unable to create: " << path;
-    }
-    else
-    {
-        qDebug() << "Created: " << dir.absolutePath();
-    }
-
-    QFile descriptionFile(QString("%1/dscr").arg(path));
-    descriptionFile.open(QIODevice::WriteOnly);
-    descriptionFile.write(format.toUtf8());
-    descriptionFile.close();
-
-    QFile dataFile(QString("%1/dt").arg(path));
-    dataFile.open(QIODevice::WriteOnly);
-    dataFile.write(data);
-    dataFile.close();
-}
-
-void MainWindow::storeClipboard()
+void MainWindow::saveClipboard()
 {
     QDir dir(QDir::currentPath() + "/clpbrd");
     if (dir.exists())
@@ -61,11 +35,26 @@ void MainWindow::storeClipboard()
     int index = 0;
     foreach (QString format, mimeData->formats())
     {
-        storeFormat(index++, format, mimeData->data(format));
+        QString path = QString("%1/%2/%3").arg(QDir::currentPath(), "clpbrd", QString::number(index++));
+        QDir dir;
+        if (!dir.mkpath(path))
+        {
+            qDebug() << "Unable to create: " << path;
+        }
+
+        QFile descriptionFile(QString("%1/dscr").arg(path));
+        descriptionFile.open(QIODevice::WriteOnly);
+        descriptionFile.write(format.toUtf8());
+        descriptionFile.close();
+
+        QFile dataFile(QString("%1/dt").arg(path));
+        dataFile.open(QIODevice::WriteOnly);
+        dataFile.write(mimeData->data(format));
+        dataFile.close();
     }
 }
 
-void MainWindow::restoreClipboard()
+void MainWindow::loadClipboard()
 {
     QDir dir(QDir::currentPath() + "/clpbrd");
     if (!dir.exists())
@@ -74,13 +63,10 @@ void MainWindow::restoreClipboard()
         return;
     }
 
-
     QMimeData *mimeData = new QMimeData;
     foreach (QString directory, dir.entryList(QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Dirs))
     {
         QString path = QString("%1/%2").arg(dir.absolutePath(), directory);
-
-        qDebug() << path;
 
         QFile descriptionFile(QString("%1/dscr").arg(path));
         descriptionFile.open(QIODevice::ReadOnly);
@@ -97,8 +83,6 @@ void MainWindow::restoreClipboard()
 
     clipboard->clear();
     clipboard->setMimeData(mimeData);
-
-    qDebug() << "Restore";
 }
 
 void MainWindow::clipboardDataChanged()

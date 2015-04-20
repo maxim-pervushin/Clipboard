@@ -18,11 +18,10 @@ public:
 private:
     Ui::MainWindow *ui;
     QClipboard *clipboard;
-    void storeFormat(int index, QString format, QByteArray data);
 
 private slots:
-    void storeClipboard();
-    void restoreClipboard();
+    void saveClipboard();
+    void loadClipboard();
     void clipboardDataChanged();
 };
 

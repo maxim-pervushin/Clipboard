@@ -41,16 +41,16 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="storeClipboardButton">
+       <widget class="QPushButton" name="saveClipboardButton">
         <property name="text">
-         <string>Store Clipboard</string>
+         <string>Save Clipboard</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="restoreClipboardButton">
+       <widget class="QPushButton" name="loadClipboardButton">
         <property name="text">
-         <string>Restore Clipboard</string>
+         <string>Load Clipboard</string>
         </property>
        </widget>
       </item>
