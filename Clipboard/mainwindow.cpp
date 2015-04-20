@@ -67,7 +67,7 @@ void MainWindow::saveClipboard()
 {
     QString fileName = QString("%1 %2 %3.%4").arg(ui->aliasEdit->text(),
                                                QDate::currentDate().toString("dd-MM-yyyy"),
-                                               QTime::currentTime().toString("hh:mm:ss"),
+                                               QTime::currentTime().toString("hh_mm_ss"),
                                                "clipboard");
     QString filePath = QString("%1/%2").arg(ui->folderEdit->text(), fileName);
 
