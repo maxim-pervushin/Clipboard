@@ -18,6 +18,7 @@ public:
 private:
     Ui::MainWindow *ui;
     QClipboard *clipboard;
+    QString clipboardFilePath();
 
 private slots:
     void saveClipboard();

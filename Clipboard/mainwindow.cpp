@@ -21,78 +21,70 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+QString MainWindow::clipboardFilePath()
+{
+    return QString("%1/%2.%3").arg(QDir::currentPath(), "saved", "clipboard");
+}
+
 void MainWindow::saveClipboard()
 {
-    QDir dir(QDir::currentPath() + "/clpbrd");
-    if (dir.exists())
-    {
-        dir.removeRecursively();
-    }
-
     const QClipboard *clipboard = QApplication::clipboard();
     const QMimeData *mimeData = clipboard->mimeData();
 
-    int index = 0;
+    QVariantMap map;
     foreach (QString format, mimeData->formats())
     {
-        QString path = QString("%1/%2/%3").arg(QDir::currentPath(), "clpbrd", QString::number(index++));
-        QDir dir;
-        if (!dir.mkpath(path))
-        {
-            qDebug() << "Unable to create: " << path;
-        }
-
-        QFile descriptionFile(QString("%1/dscr").arg(path));
-        descriptionFile.open(QIODevice::WriteOnly);
-        descriptionFile.write(format.toUtf8());
-        descriptionFile.close();
-
-        QFile dataFile(QString("%1/dt").arg(path));
-        dataFile.open(QIODevice::WriteOnly);
-        dataFile.write(mimeData->data(format));
-        dataFile.close();
+        map.insert(format, QVariant(mimeData->data(format)));
     }
+
+    QFile file(clipboardFilePath());
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        qDebug() << "Unable to open file for writing:" << clipboardFilePath();
+        return;
+    }
+
+    QDataStream out(&file);
+    out.setVersion(QDataStream::Qt_5_4);
+    out << map;
+    file.flush();
+    file.close();
 }
 
 void MainWindow::loadClipboard()
 {
-    QDir dir(QDir::currentPath() + "/clpbrd");
-    if (!dir.exists())
+    QFile file(clipboardFilePath());
+    if (!file.exists())
     {
-        qDebug() << "Nothing to restore";
+        qDebug() << "File doesn't exists:" << clipboardFilePath();
         return;
     }
 
-    QMimeData *mimeData = new QMimeData;
-    foreach (QString directory, dir.entryList(QDir::NoDotAndDotDot | QDir::NoSymLinks | QDir::Dirs))
+    if (!file.open(QIODevice::ReadOnly))
     {
-        QString path = QString("%1/%2").arg(dir.absolutePath(), directory);
-
-        QFile descriptionFile(QString("%1/dscr").arg(path));
-        descriptionFile.open(QIODevice::ReadOnly);
-        QString format = QString(descriptionFile.readAll());
-        descriptionFile.close();
-
-        QFile dataFile(QString("%1/dt").arg(path));
-        dataFile.open(QIODevice::ReadOnly);
-        QByteArray data = dataFile.readAll();
-        dataFile.close();
-
-        mimeData->setData(format, data);
+        qDebug() << "Unable to open file for reading:" << clipboardFilePath();
+        return;
     }
 
+    QDataStream in(&file);
+    QVariantMap map;
+    in >> map;
+    file.close();
+
+    QMimeData *mimeData = new QMimeData;
+    foreach (QString key, map.keys())
+    {
+        mimeData->setData(key, map.value(key).toByteArray());
+        //qDebug() << key << QString("%1").arg(map.value(key).toString());
+    }
     clipboard->clear();
     clipboard->setMimeData(mimeData);
 }
 
 void MainWindow::clipboardDataChanged()
 {
-    qDebug() << "Clipboard data changed";
-
     const QClipboard *clipboard = QApplication::clipboard();
     const QMimeData *mimeData = clipboard->mimeData();
-
-    qDebug() << mimeData->formats();
 
     ui->listWidget->clear();
     ui->listWidget->addItems(mimeData->formats());
