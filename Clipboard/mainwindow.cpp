@@ -88,7 +88,7 @@ void MainWindow::saveClipboard()
     }
 
     QDataStream out(&file);
-    out.setVersion(QDataStream::Qt_5_4);
+    out.setVersion(QDataStream::Qt_5_0);
     out << map;
     file.flush();
     file.close();
@@ -110,6 +110,7 @@ void MainWindow::loadClipboard(QString filePath)
     }
 
     QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_5_0);
     QVariantMap map;
     in >> map;
     file.close();
