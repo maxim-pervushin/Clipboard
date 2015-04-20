@@ -4,6 +4,8 @@
 #include <QMimeData>
 #include <QDebug>
 #include <QDir>
+#include <QFileDialog>
+#include <QDate>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -11,9 +13,21 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    QString userName = qgetenv("USER");
+    if (userName.isEmpty())
+    {
+        userName = qgetenv("USERNAME");
+    }
+
+    ui->aliasEdit->setText(userName);
+    setFolder(QDir::currentPath());
+
     connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(clipboardDataChanged()));
+    connect(ui->selectFolderButton, SIGNAL(clicked()), this, SLOT(selectFolder()));
     connect(ui->saveClipboardButton, SIGNAL(clicked()), this, SLOT(saveClipboard()));
-    connect(ui->loadClipboardButton, SIGNAL(clicked()), this, SLOT(loadClipboard()));
+    connect(ui->contentsListWidget, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(contentsListWidgetDoubleClicked(QModelIndex)));
+
+    connect(&fileSystemWatcher, SIGNAL(directoryChanged(QString)), this, SLOT(reloadDirectoryContents(QString)));
 }
 
 MainWindow::~MainWindow()
@@ -21,13 +35,42 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-QString MainWindow::clipboardFilePath()
+void MainWindow::setFolder(QString folder)
 {
-    return QString("%1/%2.%3").arg(QDir::currentPath(), "saved", "clipboard");
+    if (!fileSystemWatcher.removePath(ui->folderEdit->text()))
+    {
+        qDebug() << "Unable to remove path:" << ui->folderEdit->text();
+    }
+
+    ui->folderEdit->setText(folder);
+
+    if (!fileSystemWatcher.addPath(folder))
+    {
+        qDebug() << "Unable to add path:" << folder;
+    }
+
+    reloadDirectoryContents(folder);
+}
+
+void MainWindow::selectFolder()
+{
+    QFileDialog dialog;
+    dialog.setFileMode(QFileDialog::Directory);
+    dialog.setOption(QFileDialog::ShowDirsOnly);
+    if (dialog.exec())
+    {
+        setFolder(dialog.selectedFiles().at(0));
+    }
 }
 
 void MainWindow::saveClipboard()
 {
+    QString fileName = QString("%1 %2 %3.%4").arg(ui->aliasEdit->text(),
+                                               QDate::currentDate().toString("dd-MM-yyyy"),
+                                               QTime::currentTime().toString("hh:mm:ss"),
+                                               "clipboard");
+    QString filePath = QString("%1/%2").arg(ui->folderEdit->text(), fileName);
+
     const QClipboard *clipboard = QApplication::clipboard();
     const QMimeData *mimeData = clipboard->mimeData();
 
@@ -37,10 +80,10 @@ void MainWindow::saveClipboard()
         map.insert(format, QVariant(mimeData->data(format)));
     }
 
-    QFile file(clipboardFilePath());
+    QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly))
     {
-        qDebug() << "Unable to open file for writing:" << clipboardFilePath();
+        qDebug() << "Unable to open file for writing:" << filePath;
         return;
     }
 
@@ -51,18 +94,18 @@ void MainWindow::saveClipboard()
     file.close();
 }
 
-void MainWindow::loadClipboard()
+void MainWindow::loadClipboard(QString filePath)
 {
-    QFile file(clipboardFilePath());
+    QFile file(filePath);
     if (!file.exists())
     {
-        qDebug() << "File doesn't exists:" << clipboardFilePath();
+        qDebug() << "File doesn't exists:" << filePath;
         return;
     }
 
     if (!file.open(QIODevice::ReadOnly))
     {
-        qDebug() << "Unable to open file for reading:" << clipboardFilePath();
+        qDebug() << "Unable to open file for reading:" << filePath;
         return;
     }
 
@@ -75,10 +118,19 @@ void MainWindow::loadClipboard()
     foreach (QString key, map.keys())
     {
         mimeData->setData(key, map.value(key).toByteArray());
-        //qDebug() << key << QString("%1").arg(map.value(key).toString());
     }
-    clipboard->clear();
-    clipboard->setMimeData(mimeData);
+    QApplication::clipboard()->clear();
+    QApplication::clipboard()->setMimeData(mimeData);
+}
+
+void MainWindow::reloadDirectoryContents(QString directory)
+{
+    ui->contentsListWidget->clear();
+    QDir dir(directory);
+    QStringList files = dir.entryList(QStringList("*.clipboard"), QDir::Files, QDir::Time);
+    ui->contentsListWidget->addItems(files);
+
+    qDebug() << directory;
 }
 
 void MainWindow::clipboardDataChanged()
@@ -88,4 +140,11 @@ void MainWindow::clipboardDataChanged()
 
     ui->listWidget->clear();
     ui->listWidget->addItems(mimeData->formats());
+}
+
+void MainWindow::contentsListWidgetDoubleClicked(QModelIndex modelIndex)
+{
+    QString filePath = QString("%1/%2").arg(ui->folderEdit->text(), ui->contentsListWidget->currentItem()->text());
+    loadClipboard(filePath);
+    //qDebug() << ui->folderEdit->text() << "/" << ui->contentsListWidget->currentItem()->text();
 }
