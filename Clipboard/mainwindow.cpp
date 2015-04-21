@@ -136,16 +136,32 @@ void MainWindow::reloadDirectoryContents(QString directory)
 
 void MainWindow::clipboardDataChanged()
 {
-    const QClipboard *clipboard = QApplication::clipboard();
-    const QMimeData *mimeData = clipboard->mimeData();
+    if (!ui->showClipboardContentCheckBox->isChecked()) {
+        return;
+    }
 
-    ui->listWidget->clear();
-    ui->listWidget->addItems(mimeData->formats());
+    const QMimeData *mimeData = QApplication::clipboard()->mimeData();
+    ui->clipboardContentTableWidget->clear();
+    ui->clipboardContentTableWidget->setRowCount(mimeData->formats().count());
+    ui->clipboardContentTableWidget->setColumnCount(3);
+    QStringList headers;
+    headers << "Mimetype" << "Size" << "Content";
+    ui->clipboardContentTableWidget->setHorizontalHeaderLabels(headers);
+    int index = 0;
+    foreach (QString format, mimeData->formats()) {
+        QTableWidgetItem *item1 = new QTableWidgetItem(format);
+        QByteArray data = mimeData->data(format);
+        QTableWidgetItem *item2 = new QTableWidgetItem(QString("%1").arg(data.size()));
+        QTableWidgetItem *item3 = new QTableWidgetItem(QString(data));
+        ui->clipboardContentTableWidget->setItem(index, 0, item1);
+        ui->clipboardContentTableWidget->setItem(index, 1, item2);
+        ui->clipboardContentTableWidget->setItem(index, 2, item3);
+        index++;
+    }
 }
 
 void MainWindow::contentsListWidgetDoubleClicked(QModelIndex modelIndex)
 {
     QString filePath = QString("%1/%2").arg(ui->folderEdit->text(), ui->contentsListWidget->currentItem()->text());
     loadClipboard(filePath);
-    //qDebug() << ui->folderEdit->text() << "/" << ui->contentsListWidget->currentItem()->text();
 }
