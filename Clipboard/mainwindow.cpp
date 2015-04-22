@@ -118,7 +118,12 @@ void MainWindow::loadClipboard(QString filePath)
     QMimeData *mimeData = new QMimeData;
     foreach (QString key, map.keys())
     {
-        mimeData->setData(key, map.value(key).toByteArray());
+        QString originalKey = key;
+        if (key.startsWith("application/x-qt-windows-mime;value=")) {
+            key.replace("application/x-qt-windows-mime;value=\"", "");
+            key.replace("\"", "");
+        }
+        mimeData->setData(key, map.value(originalKey).toByteArray());
     }
     QApplication::clipboard()->clear();
     QApplication::clipboard()->setMimeData(mimeData);
