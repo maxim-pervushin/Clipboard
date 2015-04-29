@@ -12,9 +12,18 @@ TARGET = Clipboard
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp
+SOURCES += \
+    main.cpp \
+    mainwindow.cpp \
+    application.cpp \
+    clipboardmanager.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += \
+    mainwindow.h \
+    application.h \
+    clipboardmanager.h
 
 FORMS    += mainwindow.ui
+
+RESOURCES += \
+    img.qrc

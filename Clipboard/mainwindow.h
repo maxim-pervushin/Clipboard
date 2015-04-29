@@ -2,8 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QFileSystemWatcher>
 #include <QModelIndex>
+#include "clipboardmanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -19,14 +19,14 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QFileSystemWatcher fileSystemWatcher;
-    void setFolder(QString folder);
-    void loadClipboard(QString filePath);
+    ClipboardManager *getClipboardManager();
 
 private slots:
+    void folderChanged();
+    void aliasChanged();
+
     void selectFolder();
     void saveClipboard();
-    void reloadDirectoryContents(QString directory);
     void clipboardDataChanged();
     void contentsListWidgetDoubleClicked(QModelIndex modelIndex);
 };

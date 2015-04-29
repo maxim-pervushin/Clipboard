@@ -1,11 +1,12 @@
 #include "mainwindow.h"
-#include <QApplication>
+#include "application.h"
+#include <QSystemTrayIcon>
 
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+int main(int argc, char *argv[]) {
+    QCoreApplication::setOrganizationName("Maxim Pervushin");
+    QCoreApplication::setOrganizationDomain("clipboardsaver.com");
+    QCoreApplication::setApplicationName("Clipboard Saver");
 
-    return a.exec();
+    Application application(argc, argv);
+    return application.exec();
 }
